@@ -263,6 +263,16 @@ open web/index.html
 
 The web interface is a **single self-contained HTML file** — no frameworks, no build tools, no dependencies. Everything runs in the browser.
 
+### Screenshots
+
+<div align="center">
+
+| 🌑 Dark Mode | ☀️ Light Mode |
+|---|---|
+| ![Dark Mode](assets/dark.png) | ![Light Mode](assets/light.png) |
+
+</div>
+
 ### Interface Highlights
 
 | Feature | Description |
@@ -341,6 +351,10 @@ text-file-manipulator/
 │
 ├── 📂 samples/
 │   └── file1.txt                   # 28-name demo file with 7 intentional duplicates
+│
+├── 📂 assets/
+│   ├── dark.png                    # Screenshot — dark mode UI
+│   └── light.png                   # Screenshot — light mode UI
 │
 ├── .gitignore                      # Ignores *.class, IDE files, OS files
 └── README.md                       # You are here
