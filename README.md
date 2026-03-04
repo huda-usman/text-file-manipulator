@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- BANNER -->
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1120,50:00e5ff,100:0d1120&height=200&section=header&text=Text%20File%20Manipulator&fontSize=42&fontColor=ffffff&fontAlignY=38&desc=DSA-Powered%20File%20Operations%20%7C%20Java%20%2B%20Web%20UI&descAlignY=58&descSize=16&animation=fadeIn" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=slice&color=0:000000,100:06d6a0&height=160&text=Text%20File%20Manipulator&fontSize=36&fontColor=ffffff&fontAlignY=55&desc=DSA-Powered%20File%20Operations%20%7C%20Java%20%2B%20Web%20UI&descAlignY=75&descSize=14" width="100%"/>
 
 <br/>
 
