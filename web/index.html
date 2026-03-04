@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Text File Manipulator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=JetBrains+Mono:wght@400;600&family=Syne:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #07090f;
+      --bg2:      #0d1120;
+      --bg3:      #111827;
+      --panel:    rgba(13, 17, 32, 0.85);
+      --border:   rgba(0, 229, 255, 0.12);
+      --cyan:     #00e5ff;
+      --cyan2:    #00b8cc;
+      --gold:     #ffd166;
+      --red:      #ff6b6b;
+      --green:    #06d6a0;
+      --text:     #e0e8f5;
+      --muted:    #4a5568;
+      --code-text:#c9d1e0;
+      --lnum-bg:  rgba(7,9,15,0.4);
+      --header-bg:rgba(7,9,15,0.7);
+      --sidebar-bg:rgba(7,9,15,0.5);
+      --tabs-bg:  rgba(7,9,15,0.4);
+      --pane-hdr: rgba(7,9,15,0.6);
+      --modal-bg: #0d1120;
+      --op-hover-bg: rgba(0,229,255,0.05);
+      --op-hover-border: rgba(0,229,255,0.2);
+      --op-active-bg: rgba(0,229,255,0.08);
+      --upload-bg:rgba(0,229,255,0.02);
+      --cb-bg:    rgba(255,209,102,0.06);
+      --cb-border:rgba(255,209,102,0.2);
+      --mono:     'JetBrains Mono', monospace;
+      --display:  'Orbitron', sans-serif;
+      --ui:       'Syne', sans-serif;
+    }
+
+    /* ─── LIGHT THEME ─── */
+    [data-theme="light"] {
+      --bg:       #f0f4fa;
+      --bg2:      #ffffff;
+      --bg3:      #e8edf5;
+      --panel:    rgba(255,255,255,0.9);
+      --border:   rgba(0, 150, 180, 0.2);
+      --cyan:     #0090a8;
+      --cyan2:    #007a90;
+      --gold:     #c47d00;
+      --red:      #d94f4f;
+      --green:    #048a69;
+      --text:     #1a2235;
+      --muted:    #8496b0;
+      --code-text:#2d3a52;
+      --lnum-bg:  rgba(232,237,245,0.8);
+      --header-bg:rgba(240,244,250,0.88);
+      --sidebar-bg:rgba(240,244,250,0.6);
+      --tabs-bg:  rgba(240,244,250,0.7);
+      --pane-hdr: rgba(232,237,245,0.85);
+      --modal-bg: #ffffff;
+      --op-hover-bg: rgba(0,144,168,0.06);
+      --op-hover-border: rgba(0,144,168,0.25);
+      --op-active-bg: rgba(0,144,168,0.1);
+      --upload-bg:rgba(0,144,168,0.03);
+      --cb-bg:    rgba(196,125,0,0.07);
+      --cb-border:rgba(196,125,0,0.22);
+    }
+
+    /* ─── SMOOTH THEME TRANSITIONS ─── */
+    html { transition: background-color 0.3s ease; }
+    body, header, .sidebar, .op-card, .pane-header, .tabs,
+    .upload-zone, .clipboard-badge, .modal, .line-numbers,
+    .code-lines, .modal-field input, .modal-field textarea {
+      transition: background-color 0.28s ease, border-color 0.28s ease,
+                  color 0.28s ease, box-shadow 0.28s ease !important;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--ui);
+      overflow-x: hidden;
+    }
+
+    /* ─── GRID NOISE BACKGROUND ─── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 20% -10%, rgba(0,229,255,0.07) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 50% at 80% 110%, rgba(255,209,102,0.05) 0%, transparent 55%),
+        repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(0,229,255,0.022) 39px, rgba(0,229,255,0.022) 40px),
+        repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(0,229,255,0.022) 39px, rgba(0,229,255,0.022) 40px);
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    [data-theme="light"] body::before, body[data-theme="light"]::before {
+      opacity: 0.35;
+    }
+
+    /* ─── SCANLINE ─── */
+    body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 3px,
+        rgba(0,0,0,0.045) 3px,
+        rgba(0,0,0,0.045) 4px
+      );
+      pointer-events: none;
+    }
+
+    /* ─── LAYOUT ─── */
+    .app {
+      position: relative; z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─── HEADER ─── */
+    header {
+      padding: 28px 48px 20px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--header-bg);
+      backdrop-filter: blur(20px);
+      position: sticky; top: 0; z-index: 100;
+    }
+
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan2));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 20px rgba(0,229,255,0.35);
+      flex-shrink: 0;
+    }
+
+    .header-text h1 {
+      font-family: var(--display);
+      font-size: 1.15rem;
+      letter-spacing: 0.15em;
+      color: var(--cyan);
+      text-shadow: 0 0 20px rgba(0,229,255,0.5);
+      line-height: 1;
+    }
+
+    .header-text p {
+      font-size: 0.72rem;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+    }
+
+    .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: all .3s;
+      box-shadow: 0 0 0px transparent;
+    }
+    .status-dot.active {
+      background: var(--green);
+      box-shadow: 0 0 10px var(--green);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .file-name-display {
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--muted);
+      transition: color .3s;
+    }
+    .file-name-display.active { color: var(--gold); }
+
+    /* ─── MAIN AREA ─── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 0;
+      min-height: 0;
+    }
+
+    /* ─── LEFT PANEL ─── */
+    .sidebar {
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      padding: 28px 24px;
+      gap: 24px;
+      background: var(--sidebar-bg);
+      overflow-y: auto;
+    }
+
+    /* ─── FILE UPLOAD ZONE ─── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .3s ease;
+      position: relative;
+      overflow: hidden;
+      background: var(--upload-bg);
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--cyan);
+      background: rgba(0,229,255,0.06);
+      box-shadow: inset 0 0 30px rgba(0,229,255,0.04);
+    }
+    .upload-zone input {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+    }
+    .upload-icon {
+      font-size: 2rem; margin-bottom: 10px;
+      display: block;
+      filter: drop-shadow(0 0 8px rgba(0,229,255,0.3));
+    }
+    .upload-zone h3 {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+    .upload-zone p {
+      font-size: 0.7rem;
+      color: var(--muted);
+    }
+
+    /* ─── SECTION LABEL ─── */
+    .section-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ─── OPERATION CARDS ─── */
+    .ops-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .op-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 11px 14px;
+      border-radius: 10px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all .22s ease;
+      background: rgba(255,255,255,0.02);
+      user-select: none;
+    }
+    .op-card:hover {
+      border-color: var(--op-hover-border);
+      background: var(--op-hover-bg);
+      transform: translateX(3px);
+    }
+    .op-card.active {
+      border-color: var(--cyan);
+      background: var(--op-active-bg);
+      box-shadow: 0 0 16px rgba(0,229,255,0.1), inset 0 0 20px rgba(0,229,255,0.04);
+    }
+    .op-num {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      background: var(--bg3);
+      border: 1px solid var(--border);      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--muted);
+      flex-shrink: 0;
+      transition: all .22s;
+    }
+    .op-card.active .op-num {
+      background: var(--cyan);
+      color: var(--bg);
+      border-color: var(--cyan);
+      font-weight: 700;
+    }
+    .op-icon {
+      font-size: 1rem;
+      flex-shrink: 0;
+      width: 22px;
+      text-align: center;
+    }
+    .op-info { flex: 1; min-width: 0; }
+    .op-name {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      transition: color .22s;
+    }
+    .op-card.active .op-name { color: var(--cyan); }
+    .op-desc {
+      font-size: 0.63rem;
+      color: var(--muted);
+      margin-top: 1px;
+    }
+    .op-struct {
+      font-family: var(--mono);
+      font-size: 0.58rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255,209,102,0.1);
+      color: var(--gold);
+      border: 1px solid rgba(255,209,102,0.2);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ─── EXECUTE BUTTON ─── */
+    .exec-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan2));
+      color: var(--bg);
+      border: none;
+      border-radius: 12px;
+      font-family: var(--display);
+      font-size: 0.75rem;
+      letter-spacing: 0.15em;
+      cursor: pointer;
+      transition: all .25s ease;
+      box-shadow: 0 4px 20px rgba(0,229,255,0.25);
+      position: relative;
+      overflow: hidden;
+    }
+    .exec-btn::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+      opacity: 0;
+      transition: opacity .25s;
+    }
+    .exec-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(0,229,255,0.4);
+    }
+    .exec-btn:hover::before { opacity: 1; }
+    .exec-btn:active { transform: translateY(0); }
+    .exec-btn:disabled {
+      background: var(--bg3);
+      color: var(--muted);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* ─── RIGHT PANEL ─── */
+    .content-area {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ─── CONTENT TABS ─── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      padding: 16px 28px 0;
+      border-bottom: 1px solid var(--border);
+      background: var(--tabs-bg);
+    }
+    .tab {
+      padding: 8px 18px 12px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+      transition: all .2s;
+    }
+    .tab:hover { color: var(--text); }
+    .tab.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+    }
+
+    /* ─── EDITOR / OUTPUT ─── */
+    .panels {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      overflow: hidden;
+    }
+    .pane {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-right: 1px solid var(--border);
+    }
+    .pane:last-child { border-right: none; }
+
+    .pane-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--pane-hdr);
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .pane-title {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .pane-title span { font-size: 0.8rem; }
+    .line-count {
+      font-family: var(--mono);
+      font-size: 0.63rem;
+      color: var(--muted);
+    }
+
+    .copy-btn {
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 5px;
+      font-size: 0.62rem;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: var(--ui);
+    }
+    .copy-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+    .download-btn {
+      padding: 4px 10px;
+      background: transparent;
+      border: 1px solid rgba(6,214,160,0.3);
+      color: var(--green);
+      border-radius: 5px;
+      font-size: 0.62rem;
+      cursor: pointer;
+      transition: all .2s;
+      font-family: var(--ui);
+    }
+    .download-btn:hover { background: rgba(6,214,160,0.08); }
+
+    .code-wrap {
+      flex: 1;
+      overflow: auto;
+      padding: 0;
+      position: relative;
+    }
+
+    .code-content {
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      line-height: 1.8;
+      color: var(--code-text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      display: flex;
+    }
+
+    .line-numbers {
+      display: flex;
+      flex-direction: column;
+      padding: 16px 12px 16px 16px;
+      color: var(--muted);
+      text-align: right;
+      font-size: 0.72rem;
+      user-select: none;
+      border-right: 1px solid var(--border);
+      background: var(--lnum-bg);
+      position: sticky; left: 0;
+      min-width: 48px;
+      flex-shrink: 0;
+    }
+    .line-numbers span { display: block; line-height: 1.8; }
+
+    .code-lines {
+      padding: 16px 20px;
+      flex: 1;
+      outline: none;
+    }
+
+    /* highlight lines */
+    .line-hl {
+      background: rgba(0,229,255,0.07);
+      border-left: 2px solid var(--cyan);
+      padding-left: 4px;
+      margin-left: -4px;
+      display: block;
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      gap: 12px;
+      color: var(--muted);
+    }
+    .empty-state .big-icon { font-size: 2.5rem; opacity: 0.3; }
+    .empty-state p { font-size: 0.75rem; letter-spacing: 0.05em; }
+
+    /* ─── MODAL / DIALOG ─── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 500;
+      background: rgba(7,9,15,0.85);
+      backdrop-filter: blur(8px);
+      display: flex; align-items: center; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity .25s;
+    }
+    .modal-overlay.show { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: var(--modal-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px;
+      width: 440px;
+      max-width: 90vw;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,229,255,0.05);
+      transform: translateY(16px);
+      transition: transform .25s;
+    }
+    .modal-overlay.show .modal { transform: translateY(0); }
+
+    .modal h2 {
+      font-family: var(--display);
+      font-size: 0.9rem;
+      letter-spacing: 0.12em;
+      color: var(--cyan);
+      margin-bottom: 6px;
+    }
+    .modal p.modal-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .modal-field { margin-bottom: 16px; }
+    .modal-field label {
+      display: block;
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+    .modal-field input, .modal-field textarea {
+      width: 100%;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-family: var(--mono);
+      font-size: 0.8rem;
+      color: var(--text);
+      outline: none;
+      transition: border-color .2s;
+      resize: vertical;
+    }
+    .modal-field input:focus, .modal-field textarea:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 24px;
+      justify-content: flex-end;
+    }
+    .btn-cancel {
+      padding: 10px 20px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.78rem;
+      transition: all .2s;
+      font-family: var(--ui);
+    }
+    .btn-cancel:hover { border-color: var(--red); color: var(--red); }
+    .btn-ok {
+      padding: 10px 24px;
+      background: var(--cyan);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: var(--display);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      transition: all .2s;
+    }
+    .btn-ok:hover { background: #33ecff; box-shadow: 0 4px 16px rgba(0,229,255,0.3); }
+
+    /* ─── TOAST ─── */
+    .toast-wrap {
+      position: fixed;
+      bottom: 28px; right: 28px;
+      z-index: 600;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+    }
+    .toast {
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--bg);
+      display: flex; align-items: center; gap: 8px;
+      animation: slideIn .3s ease, fadeOut .3s 2.7s forwards;
+      pointer-events: none;
+    }
+    .toast.success { background: var(--green); }
+    .toast.error   { background: var(--red); }
+    .toast.info    { background: var(--cyan); }
+    .toast.warn    { background: var(--gold); color: #333; }
+    @keyframes slideIn {
+      from { transform: translateX(40px); opacity: 0; }
+      to   { transform: translateX(0);    opacity: 1; }
+    }
+    @keyframes fadeOut {
+      to { opacity: 0; transform: translateX(10px); }
+    }
+
+    /* ─── CLIPBOARD BADGE ─── */
+    .clipboard-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: var(--cb-bg);
+      border: 1px solid var(--cb-border);
+      border-radius: 8px;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      color: var(--gold);
+    }
+    .clipboard-badge .cb-label {
+      font-family: var(--ui);
+      font-weight: 700;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+    .clipboard-badge .cb-val {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .clipboard-badge.empty { opacity: 0.4; }
+
+    /* ─── DIFF HIGHLIGHT ─── */
+    .diff-new  { background: rgba(6,214,160,0.12); display: block; }
+    .diff-rem  { background: rgba(255,107,107,0.1); display: block; text-decoration: line-through; opacity: 0.5; }
+
+    /* ─── THEME TOGGLE ─── */
+    .theme-toggle {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      flex-shrink: 0;
+    }
+    .toggle-track {
+      display: flex;
+      align-items: center;
+      width: 58px;
+      height: 28px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      position: relative;
+      padding: 3px;
+      transition: background 0.3s, border-color 0.3s;
+      overflow: hidden;
+    }
+    .toggle-thumb {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan), var(--cyan2));
+      box-shadow: 0 0 8px rgba(0,229,255,0.4);
+      position: absolute;
+      left: 4px;
+      transition: left 0.3s cubic-bezier(.4,0,.2,1), box-shadow 0.3s;
+      z-index: 1;
+    }
+    [data-theme="light"] .toggle-thumb {
+      left: 33px;
+      box-shadow: 0 0 8px rgba(0,144,168,0.35);
+    }
+    .toggle-icon {
+      position: absolute;
+      font-size: 0.72rem;
+      line-height: 1;
+      transition: opacity 0.25s;
+    }
+    .toggle-icon.moon { right: 6px; opacity: 1; }
+    .toggle-icon.sun  { left: 6px;  opacity: 0; }
+    [data-theme="light"] .toggle-icon.moon { opacity: 0; }
+    [data-theme="light"] .toggle-icon.sun  { opacity: 1; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+      .panels { grid-template-columns: 1fr; }
+      .pane:first-child { border-right: none; border-bottom: 1px solid var(--border); }
+      header { padding: 16px 20px; }
+      .sidebar { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <header>
+    <div class="logo-icon">📄</div>
+    <div class="header-text">
+      <h1>TEXT FILE MANIPULATOR</h1>
+      <p>DSA-POWERED FILE OPERATIONS · STACK · LINKEDLIST · ARRAYS</p>
+    </div>
+    <div class="header-right">
+      <!-- THEME TOGGLE -->
+      <button class="theme-toggle" id="themeToggle" title="Switch theme" onclick="toggleTheme()">
+        <span class="toggle-track">
+          <span class="toggle-thumb"></span>
+          <span class="toggle-icon moon">🌙</span>
+          <span class="toggle-icon sun">☀️</span>
+        </span>
+      </button>
+      <div class="status-dot" id="statusDot"></div>
+      <div class="file-name-display" id="fileNameDisplay">no file loaded</div>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+
+      <!-- UPLOAD -->
+      <div class="upload-zone" id="uploadZone">
+        <input type="file" id="fileInput" accept=".txt">
+        <span class="upload-icon">📁</span>
+        <h3>DROP A .TXT FILE</h3>
+        <p>or click to browse</p>
+      </div>
+
+      <!-- CLIPBOARD -->
+      <div>
+        <div class="section-label" style="margin-bottom:10px">Clipboard</div>
+        <div class="clipboard-badge empty" id="clipboardBadge">
+          <span class="cb-label">📋</span>
+          <span class="cb-val" id="clipboardVal">empty</span>
+        </div>
+      </div>
+
+      <!-- OPS -->
+      <div>
+        <div class="section-label" style="margin-bottom:12px">Operations</div>
+        <div class="ops-grid" id="opsGrid"></div>
+      </div>
+
+      <!-- EXECUTE -->
+      <button class="exec-btn" id="execBtn" disabled>▶ EXECUTE</button>
+    </aside>
+
+    <!-- CONTENT -->
+    <section class="content-area">
+      <div class="tabs">
+        <div class="tab active" data-tab="split">Split View</div>
+        <div class="tab" data-tab="input">Input</div>
+        <div class="tab" data-tab="output">Output</div>
+      </div>
+
+      <div class="panels" id="panels">
+        <!-- INPUT PANE -->
+        <div class="pane" id="inputPane">
+          <div class="pane-header">
+            <div class="pane-title"><span>📥</span>INPUT</div>
+            <div class="line-count" id="inputLineCount">0 lines</div>
+            <button class="copy-btn" onclick="copyToClipboardUI('input')">copy</button>
+          </div>
+          <div class="code-wrap" id="inputWrap">
+            <div class="empty-state" id="inputEmpty">
+              <div class="big-icon">📂</div>
+              <p>Upload a .txt file to begin</p>
+            </div>
+            <div class="code-content" id="inputCode" style="display:none">
+              <div class="line-numbers" id="inputNums"></div>
+              <div class="code-lines" id="inputLines"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OUTPUT PANE -->
+        <div class="pane" id="outputPane">
+          <div class="pane-header">
+            <div class="pane-title"><span>📤</span>OUTPUT</div>
+            <div class="line-count" id="outputLineCount">0 lines</div>
+            <div style="display:flex;gap:6px">
+              <button class="copy-btn" onclick="copyToClipboardUI('output')">copy</button>
+              <button class="download-btn" id="downloadBtn" onclick="downloadOutput()">↓ save</button>
+            </div>
+          </div>
+          <div class="code-wrap" id="outputWrap">
+            <div class="empty-state" id="outputEmpty">
+              <div class="big-icon">⚡</div>
+              <p>Select an operation and execute</p>
+            </div>
+            <div class="code-content" id="outputCode" style="display:none">
+              <div class="line-numbers" id="outputNums"></div>
+              <div class="code-lines" id="outputLines"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <h2 id="modalTitle">CONFIGURE OPERATION</h2>
+    <p class="modal-sub" id="modalSub"></p>
+    <div id="modalBody"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-ok" id="modalOk" onclick="runModal()">Execute</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let fileContent = '';
+let outputContent = '';
+let clipboard = '';
+let selectedOp = null;
+let modalCallback = null;
+let currentFileName = 'output.txt';
+
+// ─────────────────────────────────────────────
+//  OPERATIONS CONFIG
+// ─────────────────────────────────────────────
+const ops = [
+  { id:1, icon:'🔁', name:'Eliminate Repeated Lines', desc:'Remove duplicate lines', struct:'LinkedList', color:'#00e5ff' },
+  { id:2, icon:'↕️', name:'Reverse Content',          desc:'Flip line order',        struct:'Stack',      color:'#00e5ff' },
+  { id:3, icon:'➕', name:'Insert New Line',           desc:'Insert after a keyword', struct:'Stack',      color:'#ffd166' },
+  { id:4, icon:'📋', name:'Copy Text',                 desc:'Copy line to clipboard', struct:'Stack',      color:'#ffd166' },
+  { id:5, icon:'📌', name:'Paste Text',                desc:'Paste at line number',   struct:'LinkedList', color:'#06d6a0' },
+  { id:6, icon:'✂️', name:'Cut Line',                  desc:'Cut line to clipboard',  struct:'Stack',      color:'#ff6b6b' },
+  { id:7, icon:'🔤', name:'Sort Content',              desc:'Alphabetical bubble sort',struct:'Array',     color:'#00e5ff' },
+  { id:8, icon:'💾', name:'Write to New File',         desc:'Download a copy / merge',struct:'LinkedList', color:'#06d6a0' },
+];
+
+// ─────────────────────────────────────────────
+//  RENDER OPS
+// ─────────────────────────────────────────────
+function renderOps() {
+  const grid = document.getElementById('opsGrid');
+  grid.innerHTML = ops.map(op => `
+    <div class="op-card ${selectedOp===op.id?'active':''}" onclick="selectOp(${op.id})">
+      <div class="op-num">${op.id}</div>
+      <div class="op-icon">${op.icon}</div>
+      <div class="op-info">
+        <div class="op-name">${op.name}</div>
+        <div class="op-desc">${op.desc}</div>
+      </div>
+      <div class="op-struct">${op.struct}</div>
+    </div>
+  `).join('');
+}
+renderOps();
+
+// ─────────────────────────────────────────────
+//  FILE INPUT
+// ─────────────────────────────────────────────
+const fileInput = document.getElementById('fileInput');
+const uploadZone = document.getElementById('uploadZone');
+
+fileInput.addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (file) loadFile(file);
+});
+
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => {
+  e.preventDefault(); uploadZone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.txt')) loadFile(file);
+  else toast('Please drop a .txt file', 'error');
+});
+
+function loadFile(file) {
+  currentFileName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    fileContent = e.target.result.replace(/\r\n/g,'\n').replace(/\r/g,'\n');
+    // trim trailing blank line
+    if (fileContent.endsWith('\n')) fileContent = fileContent.slice(0,-1);
+    renderInput(fileContent);
+    clearOutput();
+    document.getElementById('statusDot').classList.add('active');
+    document.getElementById('fileNameDisplay').textContent = file.name;
+    document.getElementById('fileNameDisplay').classList.add('active');
+    document.getElementById('execBtn').disabled = (selectedOp === null);
+    toast(`Loaded "${file.name}"`, 'success');
+  };
+  reader.readAsText(file);
+}
+
+// ─────────────────────────────────────────────
+//  SELECT OP
+// ─────────────────────────────────────────────
+function selectOp(id) {
+  selectedOp = id;
+  renderOps();
+  document.getElementById('execBtn').disabled = !fileContent;
+}
+
+// ─────────────────────────────────────────────
+//  EXECUTE
+// ─────────────────────────────────────────────
+document.getElementById('execBtn').addEventListener('click', () => {
+  if (!fileContent) { toast('Load a file first', 'warn'); return; }
+  if (!selectedOp)  { toast('Select an operation', 'warn'); return; }
+  dispatch(selectedOp);
+});
+
+function dispatch(op) {
+  switch(op) {
+    case 1: execEliminate(); break;
+    case 2: execReverse(); break;
+    case 3: openModal('INSERT NEW LINE', 'Enter the target keyword and new line text.',
+      `<div class="modal-field"><label>Target Keyword</label><input id="m1" placeholder="e.g. Ahmed"/></div>
+       <div class="modal-field"><label>New Line to Insert (before match)</label><input id="m2" placeholder="e.g. --- NEW ENTRY ---"/></div>`,
+      execInsert); break;
+    case 4: openModal('COPY TEXT', 'Enter the line number to copy to clipboard.',
+      `<div class="modal-field"><label>Line Number</label><input id="m1" type="number" min="1" placeholder="e.g. 3"/></div>`,
+      execCopy); break;
+    case 5:
+      if (!clipboard) { toast('Clipboard is empty — copy or cut first', 'warn'); return; }
+      openModal('PASTE TEXT', `Clipboard: "${clipboard}" — enter where to insert.`,
+      `<div class="modal-field"><label>Insert Before Line Number</label><input id="m1" type="number" min="1" placeholder="e.g. 2"/></div>`,
+      execPaste); break;
+    case 6: openModal('CUT LINE', 'Enter the line number to cut to clipboard.',
+      `<div class="modal-field"><label>Line Number</label><input id="m1" type="number" min="1" placeholder="e.g. 3"/></div>`,
+      execCut); break;
+    case 7: execSort(); break;
+    case 8: openModal('WRITE TO NEW FILE', 'Download the current file OR merge another file\'s content.',
+      `<div class="modal-field"><label>New File Name</label><input id="m1" value="output.txt"/></div>
+       <div class="modal-field"><label>Merge Additional Content (optional)</label><textarea id="m2" rows="4" placeholder="Paste extra lines here to merge…"></textarea></div>`,
+      execWrite); break;
+  }
+}
+
+// ─────────────────────────────────────────────
+//  OPERATION IMPLEMENTATIONS
+// ─────────────────────────────────────────────
+
+// 1. Eliminate repeated lines — LinkedList simulation
+function execEliminate() {
+  const lines = fileContent.split('\n');
+  const seen = new Set();
+  const linked = []; // simulates singly linked list
+  lines.forEach(l => {
+    if (!seen.has(l)) { seen.add(l); linked.push(l); }
+  });
+  const result = linked.join('\n');
+  const removed = lines.length - linked.length;
+  setOutput(result);
+  toast(`Removed ${removed} duplicate line${removed!==1?'s':''}`, removed>0?'success':'info');
+}
+
+// 2. Reverse — Stack simulation
+function execReverse() {
+  const lines = fileContent.split('\n');
+  const stack = [];
+  lines.forEach(l => stack.push(l)); // push all
+  const result = [];
+  while (stack.length) result.push(stack.pop()); // pop all
+  setOutput(result.join('\n'));
+  toast('Content reversed via stack', 'success');
+}
+
+// 3. Insert new line — two-stack approach
+function execInsert() {
+  const target = document.getElementById('m1').value.trim();
+  const newLine = document.getElementById('m2').value;
+  if (!target) { toast('Enter a target keyword', 'warn'); return; }
+  const lines = fileContent.split('\n');
+  const stackOrig = [...lines];
+  const stackMod  = [];
+  while (stackOrig.length) {
+    const cur = stackOrig.pop();
+    if (cur.includes(target)) stackMod.push(newLine);
+    stackMod.push(cur);
+  }
+  const result = stackMod.reverse().join('\n');
+  setOutput(result);
+  closeModal();
+  toast(`Inserted new line before each match of "${target}"`, 'success');
+}
+
+// 4. Copy — Stack peek
+function execCopy() {
+  const n = parseInt(document.getElementById('m1').value);
+  const lines = fileContent.split('\n');
+  if (isNaN(n) || n < 1 || n > lines.length) {
+    toast(`Line must be 1–${lines.length}`, 'error'); return;
+  }
+  clipboard = lines[n-1];
+  updateClipboardUI();
+  setOutput(fileContent);
+  closeModal();
+  toast(`Copied line ${n}: "${clipboard}"`, 'info');
+}
+
+// 5. Paste — LinkedList insert
+function execPaste() {
+  const n = parseInt(document.getElementById('m1').value);
+  const lines = fileContent.split('\n');
+  if (isNaN(n) || n < 1) { toast('Enter a valid line number', 'error'); return; }
+  const list = [];
+  lines.forEach((l, i) => {
+    if (i === n-1) list.push(clipboard);
+    list.push(l);
+  });
+  if (n > lines.length) list.push(clipboard);
+  setOutput(list.join('\n'));
+  closeModal();
+  toast(`Pasted "${clipboard}" at line ${n}`, 'success');
+}
+
+// 6. Cut — Stack + LinkedList
+function execCut() {
+  const n = parseInt(document.getElementById('m1').value);
+  const lines = fileContent.split('\n');
+  if (isNaN(n) || n < 1 || n > lines.length) {
+    toast(`Line must be 1–${lines.length}`, 'error'); return;
+  }
+  clipboard = lines[n-1];
+  updateClipboardUI();
+  const list = lines.filter((_, i) => i !== n-1);
+  setOutput(list.join('\n'));
+  closeModal();
+  toast(`Cut line ${n}: "${clipboard}"`, 'warn');
+}
+
+// 7. Sort — Bubble Sort on array
+function execSort() {
+  const arr = fileContent.split('\n');
+  for (let i = 0; i < arr.length; i++) {
+    for (let j = i+1; j < arr.length; j++) {
+      if (arr[i].localeCompare(arr[j]) > 0) {
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+    }
+  }
+  setOutput(arr.join('\n'));
+  toast('Sorted alphabetically (bubble sort)', 'success');
+}
+
+// 8. Write to file — download + optional merge
+function execWrite() {
+  const name    = document.getElementById('m1').value.trim() || 'output.txt';
+  const extra   = document.getElementById('m2').value.trim();
+  const list    = fileContent.split('\n');
+  if (extra) extra.split('\n').forEach(l => list.push(l));
+  const result  = list.join('\n');
+  const blob    = new Blob([result], { type: 'text/plain' });
+  const url     = URL.createObjectURL(blob);
+  const a       = document.createElement('a');
+  a.href = url; a.download = name; a.click();
+  URL.revokeObjectURL(url);
+  setOutput(result);
+  closeModal();
+  toast(`Saved as "${name}"`, 'success');
+}
+
+// ─────────────────────────────────────────────
+//  RENDER HELPERS
+// ─────────────────────────────────────────────
+function renderInput(text) {
+  const lines = text.split('\n');
+  document.getElementById('inputLineCount').textContent = `${lines.length} line${lines.length!==1?'s':''}`;
+  document.getElementById('inputEmpty').style.display = 'none';
+  document.getElementById('inputCode').style.display  = 'flex';
+  document.getElementById('inputNums').innerHTML  = lines.map((_,i) => `<span>${i+1}</span>`).join('');
+  document.getElementById('inputLines').textContent = text;
+}
+
+function setOutput(text) {
+  outputContent = text;
+  const lines = text.split('\n');
+  document.getElementById('outputLineCount').textContent = `${lines.length} line${lines.length!==1?'s':''}`;
+  document.getElementById('outputEmpty').style.display = 'none';
+  document.getElementById('outputCode').style.display  = 'flex';
+  document.getElementById('outputNums').innerHTML  = lines.map((_,i) => `<span>${i+1}</span>`).join('');
+  document.getElementById('outputLines').textContent = text;
+}
+
+function clearOutput() {
+  outputContent = '';
+  document.getElementById('outputLineCount').textContent = '0 lines';
+  document.getElementById('outputEmpty').style.display = '';
+  document.getElementById('outputCode').style.display  = 'none';
+}
+
+function updateClipboardUI() {
+  const badge = document.getElementById('clipboardBadge');
+  document.getElementById('clipboardVal').textContent = clipboard || 'empty';
+  badge.classList.toggle('empty', !clipboard);
+}
+
+// ─────────────────────────────────────────────
+//  MODAL
+// ─────────────────────────────────────────────
+function openModal(title, sub, body, cb) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalSub').textContent   = sub;
+  document.getElementById('modalBody').innerHTML    = body;
+  modalCallback = cb;
+  document.getElementById('modalOverlay').classList.add('show');
+  setTimeout(() => { const f = document.querySelector('#modalBody input, #modalBody textarea'); if(f) f.focus(); }, 50);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('show');
+  modalCallback = null;
+}
+
+function runModal() {
+  if (modalCallback) modalCallback();
+}
+
+// close on backdrop click
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+
+// enter key in modal inputs
+document.getElementById('modal').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.target.tagName === 'INPUT') runModal();
+});
+
+// ─────────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const mode = tab.dataset.tab;
+    const panels = document.getElementById('panels');
+    const ip = document.getElementById('inputPane');
+    const op = document.getElementById('outputPane');
+    if (mode === 'split') {
+      panels.style.gridTemplateColumns = '1fr 1fr';
+      ip.style.display = ''; op.style.display = '';
+    } else if (mode === 'input') {
+      panels.style.gridTemplateColumns = '1fr';
+      ip.style.display = ''; op.style.display = 'none';
+    } else {
+      panels.style.gridTemplateColumns = '1fr';
+      ip.style.display = 'none'; op.style.display = '';
+    }
+  });
+});
+
+// ─────────────────────────────────────────────
+//  COPY TO CLIPBOARD UI (button)
+// ─────────────────────────────────────────────
+function copyToClipboardUI(which) {
+  const text = which === 'input' ? fileContent : outputContent;
+  if (!text) { toast('Nothing to copy', 'warn'); return; }
+  navigator.clipboard.writeText(text).then(() => toast('Copied to clipboard', 'info'));
+}
+
+// ─────────────────────────────────────────────
+//  DOWNLOAD OUTPUT
+// ─────────────────────────────────────────────
+function downloadOutput() {
+  if (!outputContent) { toast('No output to download', 'warn'); return; }
+  const blob = new Blob([outputContent], { type: 'text/plain' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'modified_' + currentFileName;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Downloaded!', 'success');
+}
+
+// ─────────────────────────────────────────────
+//  THEME TOGGLE
+// ─────────────────────────────────────────────
+let isDark = true;
+function toggleTheme() {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  toast(isDark ? '🌙 Dark mode' : '☀️ Light mode', 'info');
+}
+// init
+document.documentElement.setAttribute('data-theme', 'dark');
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+function toast(msg, type='info') {
+  const wrap = document.getElementById('toastWrap');
+  const icons = { success:'✓', error:'✕', info:'ℹ', warn:'⚠' };
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]||'•'}</span> ${msg}`;
+  wrap.appendChild(t);
+  setTimeout(() => t.remove(), 3200);
+}
+</script>
+</body>
+</html>
