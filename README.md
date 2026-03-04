@@ -393,7 +393,7 @@ This project is licensed under the **MIT License** — feel free to use, modify,
 
 <div align="center">
 
-<img src="https://capsule-render.vercel.app/api?type=waving&color=0:0d1120,50:00e5ff,100:0d1120&height=100&section=footer" width="100%"/>
+<img src="https://capsule-render.vercel.app/api?type=slice&color=0:06d6a0,100:000000&height=100&section=footer" width="100%"/>
 
 ### 🙋‍♀️ Connect with Me
 
