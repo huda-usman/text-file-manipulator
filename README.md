@@ -124,7 +124,7 @@ class Stack {
 }
 ```
 
-**Used in:** Reverse (ops 2), Insert (op 3), Copy (op 4), Cut (op 6)
+**Used in:** Reverse (op 2), Insert (op 3), Copy (op 4), Cut (op 6)
 
 ---
 
@@ -165,7 +165,6 @@ String[] Name = new String[SizeOfFile];
 for (int i = 0; i < count; i++) {
     for (int j = i + 1; j < count; j++) {
         if (Name[i].compareTo(Name[j]) > 0) {
-            // swap
             String temp = Name[i];
             Name[i] = Name[j];
             Name[j] = temp;
@@ -204,7 +203,7 @@ This preserves order while inserting — a classic two-stack pattern.
 
 ```bash
 # Clone the repo
-git clone https://github.com/hudausman010/text-file-manipulator.git
+git clone https://github.com/huda-usman/text-file-manipulator.git
 cd text-file-manipulator
 
 # Compile
@@ -254,9 +253,8 @@ Length of File : 193
 No installation. No server. Just open in a browser:
 
 ```bash
-# From the project root
+# From the project root — double-click or run:
 open web/index.html
-# or double-click it in your file explorer
 ```
 
 ---
@@ -277,12 +275,6 @@ The web interface is a **single self-contained HTML file** — no frameworks, no
 | 🔢 **Line Numbers** | Both panes show line numbers for easy reference |
 | 🔔 **Toast Notifications** | Every action gives instant feedback with color-coded toasts |
 
-### Screenshots
-
-> 🌑 Dark Mode — terminal-style with cyan neon accents and grid background
-
-> ☀️ Light Mode — clean paper-white with deep navy text and teal accents
-
 ---
 
 ## 🧪 Testing Guide
@@ -301,7 +293,8 @@ Yusuf, Layla, Farhan✦, Mehreen, Junaid, Nadia✦, Khansa, Kamil, Zara✦
 
 ```
 Op 1 — Eliminate Repeated Lines
-  Expected: 21 unique lines remain, 7 removed (Omar, Bilal, Sana, Farhan, Nadia, Huda, Zara)
+  Expected: 21 unique lines remain, 7 removed
+  Removed:  Huda(16), Omar(13), Bilal(14), Sana(19), Farhan(22), Nadia(25), Zara(28)
 
 Op 2 — Reverse Content
   Expected: Zara is now line 1, Huda is now line 28
@@ -309,15 +302,15 @@ Op 2 — Reverse Content
 Op 3 — Insert New Line
   Keyword:  Omar
   New Line: ── SECTION BREAK ──
-  Expected: "── SECTION BREAK ──" appears before both occurrences of Omar
+  Expected: "── SECTION BREAK ──" appears before line 2 and line 13
 
 Op 4 — Copy Text
   Line: 3  (Bilal)
   Expected: Clipboard badge shows "Bilal"
 
 Op 5 — Paste Text
-  After copying line 3, paste at line 15
-  Expected: "Bilal" inserted before line 15, all lines shift down
+  After copying line 3, paste at line 10
+  Expected: "Bilal" inserted before Zara, all lines shift down
 
 Op 6 — Cut Line
   Line: 5  (Sana)
@@ -328,7 +321,7 @@ Op 7 — Sort Content
 
 Op 8 — Merge File
   Paste extra names in the merge textarea
-  Expected: New names appended after the last line
+  Expected: New names appended after Zara on line 28
 ```
 
 ---
