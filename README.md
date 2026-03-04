@@ -397,7 +397,7 @@ This project is licensed under the **MIT License** — feel free to use, modify,
 
 ### 🙋‍♀️ Connect with Me
 
-Made with ❤️ and lots of ☕ by **Huda Usman**
+Developed by **Huda Usman**
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Huda%20Usman-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/hudausman010)
 
